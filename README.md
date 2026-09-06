@@ -144,10 +144,19 @@ Clock it at exactly `TS`. Changing the sample rate invalidates the model — re-
 
 ## Method write-ups
 
-Two standalone pages in this repo explain the reasoning behind the pipeline:
+Two pages explain the reasoning behind the pipeline:
 
-- `pipeline.html` — the eight steps, and the four decisions that determine whether the fit is usable.
-- `ports.html` — 1-port vs 2-port model boundaries, testbench wiring with a VRM in the loop, and why a linear VRM collapses back to a 1-port exactly.
+- **The pipeline** (`pipeline.html`) — the eight steps, and the four decisions that determine whether the fit is usable.
+- **Where to cut the PDN** (`ports.html`) — 1-port vs 2-port model boundaries, testbench wiring with a VRM in the loop, and why a linear VRM collapses back to a 1-port exactly.
+
+Open `docs/index.html` to read them. The files at the repo root are publishing
+fragments (no `<!doctype>` or `<head>`, which the artifact host supplies); the
+copies under `docs/` are complete standalone documents with the encoding,
+viewport and favicon filled in. After editing a write-up at the root, re-run:
+
+```bash
+python tools/build_docs.py
+```
 
 ## Layout
 
@@ -159,6 +168,7 @@ sp2ss/statespace.py   realization, balancing, modal form, discretization
 sp2ss/passivity.py    positive-real Hamiltonian test, QP-based enforcement
 sp2ss/emit.py         SystemVerilog / Verilog-AMS / C / Python / JSON emitters
 sp2ss/validate.py     error metrics, time-domain comparison, plots
+tools/build_docs.py   wraps the write-ups into standalone docs/ pages
 tools/selftest.py     end-to-end verification
 ```
 
