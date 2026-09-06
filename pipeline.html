@@ -1,0 +1,312 @@
+<title>PDN Macromodel Pipeline</title>
+<style>
+  :root{
+    --bg:#F6F7F9; --surface:#FFFFFF; --surface-2:#EDF0F3; --line:#D8DEE5;
+    --ink:#14181D; --ink-2:#3D4752; --muted:#68737F;
+    --accent:#0E7C86; --accent-soft:#E2F1F2; --accent-line:#9FCBCE;
+    --amber:#8A5210; --amber-soft:#F6ECDD; --amber-line:#D9BE93;
+    --alarm:#9B2C24; --alarm-soft:#F7E9E7; --alarm-line:#DCB0AB;
+    --shadow:0 1px 2px rgba(20,24,29,.05),0 8px 24px -12px rgba(20,24,29,.16);
+    --sans:"Inter","Helvetica Neue",Helvetica,Arial,system-ui,sans-serif;
+    --serif:Charter,"Bitstream Charter","Iowan Old Style",Georgia,"Times New Roman",serif;
+    --mono:ui-monospace,"SF Mono",SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
+  }
+  @media (prefers-color-scheme:dark){
+    :root:not([data-theme="light"]){
+      --bg:#0E1216; --surface:#161C22; --surface-2:#1D242B; --line:#2C353E;
+      --ink:#E6EBF0; --ink-2:#B4BFCA; --muted:#7C8896;
+      --accent:#3FB6C4; --accent-soft:#122C30; --accent-line:#2A5F66;
+      --amber:#E0A34C; --amber-soft:#2A2117; --amber-line:#5E4826;
+      --alarm:#E58E84; --alarm-soft:#2B1A18; --alarm-line:#5D3630;
+      --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 28px -14px rgba(0,0,0,.7);
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#0E1216; --surface:#161C22; --surface-2:#1D242B; --line:#2C353E;
+    --ink:#E6EBF0; --ink-2:#B4BFCA; --muted:#7C8896;
+    --accent:#3FB6C4; --accent-soft:#122C30; --accent-line:#2A5F66;
+    --amber:#E0A34C; --amber-soft:#2A2117; --amber-line:#5E4826;
+    --alarm:#E58E84; --alarm-soft:#2B1A18; --alarm-line:#5D3630;
+    --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 28px -14px rgba(0,0,0,.7);
+  }
+
+  *{box-sizing:border-box}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font-family:var(--serif); font-size:17px; line-height:1.62;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1080px; margin:0 auto; padding:0 28px 96px}
+  .measure{max-width:68ch}
+
+  h1,h2,h3,.eyebrow,.lbl{font-family:var(--sans)}
+  h1{
+    font-size:clamp(30px,4.6vw,46px); line-height:1.08; letter-spacing:-.024em;
+    font-weight:640; margin:0 0 14px; text-wrap:balance;
+  }
+  h2{
+    font-size:22px; letter-spacing:-.014em; font-weight:620;
+    margin:0 0 6px; text-wrap:balance;
+  }
+  h3{font-size:15px; letter-spacing:-.006em; font-weight:620; margin:0 0 6px}
+  p{margin:0 0 15px; color:var(--ink-2)}
+  a{color:var(--accent)}
+  code,.mono{font-family:var(--mono); font-size:.87em; font-variant-ligatures:none}
+  p code,li code,td code{
+    background:var(--surface-2); border:1px solid var(--line);
+    border-radius:4px; padding:.08em .34em; color:var(--ink);
+  }
+  .eyebrow{
+    font-family:var(--mono); font-size:11px; letter-spacing:.13em;
+    text-transform:uppercase; color:var(--accent); font-weight:600;
+  }
+
+  header{padding:64px 0 28px; border-bottom:1px solid var(--line); margin-bottom:44px}
+  header p.sub{font-size:19px; color:var(--muted); margin:0; max-width:60ch}
+
+  .eq{
+    font-family:var(--mono); font-size:14.5px; line-height:1.85;
+    background:var(--surface); border:1px solid var(--line);
+    border-left:3px solid var(--accent);
+    border-radius:6px; padding:16px 20px; margin:24px 0 8px;
+    overflow-x:auto; white-space:pre; color:var(--ink);
+  }
+  .eq-note{font-size:14px; color:var(--muted); margin:0 0 32px}
+
+  section{margin-bottom:56px}
+
+  /* pipeline rail — numbering encodes a real sequence */
+  ol.rail{list-style:none; margin:26px 0 0; padding:0; border-top:1px solid var(--line)}
+  ol.rail li{
+    display:grid; grid-template-columns:52px 1fr; gap:0 20px;
+    padding:16px 0; border-bottom:1px solid var(--line); align-items:start;
+  }
+  ol.rail .n{
+    font-family:var(--mono); font-size:12px; font-weight:600; color:var(--accent);
+    background:var(--accent-soft); border:1px solid var(--accent-line);
+    border-radius:4px; text-align:center; padding:3px 0; letter-spacing:.04em;
+  }
+  ol.rail .what{font-family:var(--sans); font-weight:600; font-size:15.5px; color:var(--ink)}
+  ol.rail .why{font-size:15px; color:var(--muted); margin-top:2px}
+  ol.rail .why code{font-size:.86em}
+
+  /* decision blocks */
+  .dec{
+    background:var(--surface); border:1px solid var(--line); border-radius:8px;
+    padding:22px 24px; margin-bottom:16px; box-shadow:var(--shadow);
+  }
+  .dec .lbl{
+    font-family:var(--mono); font-size:11px; letter-spacing:.11em;
+    text-transform:uppercase; color:var(--muted); font-weight:600;
+    display:block; margin-bottom:7px;
+  }
+  .dec p:last-child{margin-bottom:0}
+  .dec.amber{border-color:var(--amber-line); background:var(--amber-soft)}
+  .dec.amber .lbl{color:var(--amber)}
+
+  .callout{
+    border:1px solid var(--alarm-line); background:var(--alarm-soft);
+    border-radius:8px; padding:20px 24px; margin:18px 0 0;
+  }
+  .callout .lbl{
+    font-family:var(--mono); font-size:11px; letter-spacing:.11em;
+    text-transform:uppercase; color:var(--alarm); font-weight:600;
+    display:block; margin-bottom:9px;
+  }
+  .callout p:last-child{margin-bottom:0}
+
+  .scroll{overflow-x:auto; margin:20px 0; border:1px solid var(--line); border-radius:8px; background:var(--surface)}
+  table{border-collapse:collapse; width:100%; font-family:var(--sans); font-size:14px}
+  caption{
+    caption-side:top; text-align:left; font-family:var(--mono); font-size:11px;
+    letter-spacing:.11em; text-transform:uppercase; color:var(--muted);
+    font-weight:600; padding:14px 18px 0;
+  }
+  th,td{padding:9px 18px; text-align:left; border-bottom:1px solid var(--line); white-space:nowrap}
+  thead th{
+    font-family:var(--mono); font-size:11px; letter-spacing:.07em; text-transform:uppercase;
+    color:var(--muted); font-weight:600; background:var(--surface-2);
+  }
+  tbody tr:last-child td{border-bottom:none}
+  td.num{font-family:var(--mono); font-variant-numeric:tabular-nums; color:var(--ink)}
+  td.good{color:var(--accent); font-family:var(--mono); font-variant-numeric:tabular-nums}
+  td.bad{color:var(--alarm); font-family:var(--mono); font-variant-numeric:tabular-nums}
+  td.first{font-family:var(--mono); font-size:13px; color:var(--ink)}
+
+  pre.cmd{
+    font-family:var(--mono); font-size:13.5px; line-height:1.72;
+    background:var(--surface); border:1px solid var(--line); border-radius:8px;
+    padding:16px 20px; overflow-x:auto; margin:16px 0; color:var(--ink);
+  }
+  pre.cmd .c{color:var(--muted)}
+
+  .stats{
+    display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:1px;
+    background:var(--line); border:1px solid var(--line); border-radius:8px;
+    overflow:hidden; margin:24px 0;
+  }
+  .stat{background:var(--surface); padding:16px 18px}
+  .stat .k{
+    font-family:var(--mono); font-size:10.5px; letter-spacing:.1em; text-transform:uppercase;
+    color:var(--muted); font-weight:600;
+  }
+  .stat .v{
+    font-family:var(--mono); font-size:22px; font-weight:600; color:var(--ink);
+    font-variant-numeric:tabular-nums; margin-top:5px; letter-spacing:-.02em;
+  }
+  .stat .v span{font-size:13px; color:var(--muted); font-weight:500}
+
+  ul.tight{margin:0 0 15px; padding-left:20px; color:var(--ink-2)}
+  ul.tight li{margin-bottom:7px}
+
+  footer{
+    border-top:1px solid var(--line); padding-top:22px; margin-top:12px;
+    font-size:14px; color:var(--muted);
+  }
+  footer p{color:var(--muted)}
+  @media (max-width:640px){
+    body{font-size:16px}
+    ol.rail li{grid-template-columns:44px 1fr; gap:0 14px}
+    .wrap{padding:0 18px 72px}
+  }
+</style>
+
+<div class="wrap">
+
+<header>
+  <div class="eyebrow">Touchstone &rarr; RNM</div>
+  <h1>Turning a PDN S-parameter file into a state-space model</h1>
+  <p class="sub">A rational-fitting pipeline that ends in a handful of multiply-accumulates per timestep, with the four decisions that determine whether it works.</p>
+</header>
+
+<section class="measure">
+  <h2>What you are building</h2>
+  <p>An RNM load model is a current source that wants a voltage back. So the target is a discrete recurrence the simulator can evaluate once per timestep:</p>
+  <div class="eq">x[n+1] = Ad&#183;x[n] + Bd&#183;i[n]
+v[n]   = Cd&#183;x[n] + Dd&#183;i[n] + (E/Ts)&#183;(i[n] &minus; i[n&minus;1])</div>
+  <p class="eq-note"><span class="mono">i</span> = current injected into each port [A], <span class="mono">v</span> = port voltage [V].</p>
+  <p>On a 2-port PDN spanning 1&nbsp;kHz to 5&nbsp;GHz, that lands at six states — about forty multiplies per timestep. A 4-port extraction of the same network lands at eight.</p>
+</section>
+
+<section>
+  <div class="eyebrow">The sequence</div>
+  <h2>Eight steps</h2>
+  <ol class="rail">
+    <li><div class="n">01</div><div><div class="what">Read the Touchstone file</div><div class="why">Two traps: 2-port data is ordered S11&nbsp;S21&nbsp;S12&nbsp;S22 while every other port count is row-major, and v1 <span class="mono">.s2p</span> files may carry a noise block after the network data.</div></div></li>
+    <li><div class="n">02</div><div><div class="what">Convert S to Z</div><div class="why"><code>Z = &radic;Z&#8320; (I&minus;S)&#8315;&#185; (I+S) &radic;Z&#8320;</code> — the driving-point impedance is what maps current to voltage.</div></div></li>
+    <li><div class="n">03</div><div><div class="what">Vector fitting</div><div class="why">Relaxed Gustavsen–Semlyen iteration in real arithmetic, one common pole set for every matrix entry, unstable poles reflected into the left half plane.</div></div></li>
+    <li><div class="n">04</div><div><div class="what">Realize</div><div class="why">Real modal form: a 2&times;2 block <code>[[&sigma;,&omega;],[&minus;&omega;,&sigma;]]</code> per conjugate pair, so the state update costs ~2 multiplies per state instead of n.</div></div></li>
+    <li><div class="n">05</div><div><div class="what">Balanced truncation</div><div class="why">Drop states with negligible Hankel singular values. This is where 200 states become 8.</div></div></li>
+    <li><div class="n">06</div><div><div class="what">Passivity</div><div class="why">Positive-real Hamiltonian test; enforce by perturbing C only, so the poles — and therefore stability — are untouched.</div></div></li>
+    <li><div class="n">07</div><div><div class="what">Discretize</div><div class="why">Zero-order hold at the RNM timestep. ZOH is exact for the staircase current an RNM driver actually produces.</div></div></li>
+    <li><div class="n">08</div><div><div class="what">Emit</div><div class="why">SystemVerilog, Verilog-AMS <span class="mono">wreal</span>, C, Python, JSON, and a testbench.</div></div></li>
+  </ol>
+</section>
+
+<section class="measure">
+  <div class="eyebrow">What actually decides the outcome</div>
+  <h2>Four decisions</h2>
+  <p>Steps 1–8 are mechanical. These four are not, and each one is the difference between a model that works and one that quietly does not.</p>
+</section>
+
+<section>
+  <div class="dec">
+    <span class="lbl">Decision 01 &middot; fit Z, not S</span>
+    <h3>Fit the quantity the simulator consumes</h3>
+    <p>Converting S per timestep is both wrong and expensive. Fit the driving-point impedance directly and the recurrence falls out.</p>
+  </div>
+
+  <div class="dec">
+    <span class="lbl">Decision 02 &middot; relative weighting</span>
+    <h3>Weight the least-squares by 1/|Z|</h3>
+    <p>PDN impedance spans four or five decades. Plain least squares fits the anti-resonant peaks and throws away the milliohm mid-band you actually care about. On the reference network that is a 40&times; worse worst-case error — <span class="mono">1.40%</span> unweighted against <span class="mono">0.034%</span> weighted.</p>
+  </div>
+
+  <div class="dec amber">
+    <span class="lbl">Decision 03 &middot; keep the s&#183;E term</span>
+    <h3>A PDN is inductive at the top of the band</h3>
+    <p>Measure the slope of <span class="mono">|Z&#8322;&#8322;|</span> over the last decade and it is <span class="mono">+1.00</span> — purely inductive. Without an <span class="mono">s</span>-proportional term, vector fitting has exactly one way to synthesize a rising <span class="mono">|Z|</span>: run a pole off toward infinity with a residue that cancels against the constant term.</p>
+    <div class="callout">
+      <span class="lbl">The failure this causes</span>
+      <p>The fit <em>looks</em> fine. It reports <span class="mono">3.4e&minus;4</span> relative error. But it has placed a pole at <span class="mono">1.3e14&nbsp;Hz</span> with residue <span class="mono">1.4e20</span>, cancelling against <span class="mono">d = 1.6e5</span> — an internal dynamic range of roughly <span class="mono">1e8</span> on a milliohm network. That destroys balanced truncation and burns precision in the emitted HDL, and nothing in the error metric tells you.</p>
+    </div>
+    <p style="margin-top:16px">Admit the <span class="mono">s&#183;E</span> term and the same fit becomes 100&times; more accurate while the numbers turn physical: <span class="mono">d</span> is the DC resistance and <span class="mono">E</span> is the port inductance matrix.</p>
+    <div class="scroll">
+      <table>
+        <caption>Order-40 fit of the same 2-port, with and without the s&#183;E term</caption>
+        <thead><tr><th>Quantity</th><th>No s&#183;E</th><th>With s&#183;E</th></tr></thead>
+        <tbody>
+          <tr><td class="first">max relative error</td><td class="bad">3.4e&minus;04</td><td class="good">2.7e&minus;06</td></tr>
+          <tr><td class="first">largest residue</td><td class="bad">1.2e+20</td><td class="good">1.2e+06</td></tr>
+          <tr><td class="first">constant term d</td><td class="bad">1.5e+05</td><td class="good">7.3e&minus;04</td></tr>
+          <tr><td class="first">highest pole</td><td class="bad">1.3e+14 Hz</td><td class="good">9.3e+08 Hz</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p style="margin-top:18px">The recovered inductances are checkable against the network they came from: <span class="mono">0.2488&nbsp;pH</span> at the die port, where four 1&nbsp;pH die-cap ESLs sit in parallel, and <span class="mono">192.4&nbsp;pH</span> at the VRM port.</p>
+  </div>
+
+  <div class="dec">
+    <span class="lbl">Decision 04 &middot; realizing s&#183;E</span>
+    <h3>One FIR tap, not a pole and not bilinear</h3>
+    <p>A symmetric real <span class="mono">E</span> is a lossless inductance — it contributes nothing to the Hermitian part, so it needs no state at all. Three ways to discretize it, only one of which survives:</p>
+    <ul class="tight">
+      <li><strong>Bilinear</strong> puts a pole at <span class="mono">z = &minus;1</span>. It rings at Nyquist forever.</li>
+      <li><strong>A band-limiting pole</strong> works, but pushing the corner far enough out for under 1% error re-inflates <span class="mono">D</span> by <span class="mono">E&#183;&omega;c</span> and brings decision 03's cancellation straight back. A differentiator <em>is</em> a pole at infinity.</li>
+      <li><strong>One FIR tap</strong>, <span class="mono">(E/Ts)(i[n]&minus;i[n&minus;1])</span>, is unconditionally stable, tends to <span class="mono">j&omega;E</span> at low frequency, and is exact whenever the current is piecewise linear over a sample.</li>
+    </ul>
+  </div>
+</section>
+
+<section class="measure">
+  <div class="eyebrow">Validation</div>
+  <h2>Do not test against a zero-rise-time step</h2>
+  <p>An instantaneous current step puts infinite <span class="mono">dv/dt</span> across the port inductance. Measured that way, a perfectly good model reports <span class="mono">98%</span> error — you are measuring an impulse the coarse grid cannot resolve, not the model.</p>
+  <p>Give the current a one-sample slew instead. It is physically honest, it is the case the FIR branch is exact for, and against a 64&times; oversampled reference the same model then reports <span class="mono">1.2e&minus;4</span>.</p>
+  <div class="stats">
+    <div class="stat"><div class="k">States</div><div class="v">6 <span>from 64</span></div></div>
+    <div class="stat"><div class="k">Max rel. error</div><div class="v">3e&minus;6</div></div>
+    <div class="stat"><div class="k">Mults / timestep</div><div class="v">40</div></div>
+    <div class="stat"><div class="k">DC resistance</div><div class="v">3.5000 <span>m&#8486;</span></div></div>
+    <div class="stat"><div class="k">Passive</div><div class="v">yes</div></div>
+    <div class="stat"><div class="k">1 &minus; &rho;</div><div class="v">2.1e&minus;7</div></div>
+  </div>
+</section>
+
+<section class="measure">
+  <div class="eyebrow">Two more things that bite</div>
+  <h2>Order search and the noise floor</h2>
+  <p><strong>Reduced-order error is not monotone in retained order.</strong> Cutting between two near-equal Hankel singular values makes the balancing transform ill-conditioned, so a deeper cut can beat a shallower one. On the 4-port network, order 150 gives <span class="mono">3.1e&minus;3</span> while order 20 gives <span class="mono">1.2e&minus;4</span>. A bisection search would have missed the 8-state answer entirely; a geometric ladder with downward refinement finds it.</p>
+  <p><strong>Relative weighting will chase the VNA noise floor.</strong> Below roughly a milliohm, a 50&nbsp;&#8486;-referenced S-parameter is mostly noise. The smallest <span class="mono">|Z|</span> in the reference network is <span class="mono">14&nbsp;&micro;&#8486;</span>, so <span class="mono">37&nbsp;&micro;&#8486;</span> of measurement noise makes that sample meaningless and the raw relative error reads <span class="mono">631%</span> for a model that is fine. Clamp the weight denominator at the smallest impedance you trust and the same model reports <span class="mono">12.8%</span>.</p>
+  <p>Better still: export Z-parameters directly, or renormalize to a low reference impedance. Round-tripping milliohms through a 50&nbsp;&#8486; S-parameter at nine significant digits costs about <span class="mono">25&nbsp;n&#8486;</span> of quantization before any real noise.</p>
+</section>
+
+<section class="measure">
+  <div class="eyebrow">Choosing Ts</div>
+  <h2>Bandwidth, not stability</h2>
+  <p>ZOH is exact for the state part under a staircase input, so stability is not the binding constraint — bandwidth is. Target <span class="mono">Ts &le; 1/(20&#183;f_max)</span> for the highest frequency whose droop matters, which is rarely the top of the Touchstone file.</p>
+  <p>If the model carries a series inductance, the FIR branch adds a half-sample lag worth about <span class="mono">&pi;&#183;f&#183;Ts</span>. Twenty points per cycle costs roughly 16% on the inductive part alone; a hundred points per cycle costs about 3%.</p>
+</section>
+
+<section class="measure">
+  <div class="eyebrow">Running it</div>
+  <h2>Commands</h2>
+  <pre class="cmd"><span class="c"># build the model, search for the smallest state count</span>
+python sp2ss.py pdn.s2p --order 40 --reduce-target 1e-3 \
+       --ts 5e-12 --weight-floor 1e-3 --plot
+
+<span class="c"># reduce a multi-port extraction to the ports you actually drive</span>
+python sp2ss.py pdn.s4p --ports 1 4 --unused open --order 60</pre>
+  <p>Then clock the generated module at exactly <span class="mono">TS</span>. Changing the sample rate invalidates the model — re-run with the new <span class="mono">--ts</span>.</p>
+  <pre class="cmd">pdn_ss_rail #(.VNOM(0.8), .TS(5e-12)) u_pdn (
+    .clk(clk_5ps), .rst_n(rst_n),
+    .i_load0(i_die), .i_load1(i_vrm),   <span class="c">// current drawn, positive</span>
+    .v_rail0(v_die), .v_rail1(v_vrm)    <span class="c">// v = VNOM - Z*i</span>
+);</pre>
+</section>
+
+<footer class="measure">
+  <p>Vector fitting after Gustavsen &amp; Semlyen (1999) and the relaxed pole relocation of Gustavsen (2006); passivity enforcement after Grivet-Talocia (2004). All figures above are measured on a synthetic PDN with a known answer — VRM, board bulk, package and on-die decoupling — so the recovered DC resistance and port inductances can be checked against the network that produced them.</p>
+</footer>
+
+</div>

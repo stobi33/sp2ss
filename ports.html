@@ -1,0 +1,394 @@
+<title>Where to Cut the PDN</title>
+<style>
+  :root{
+    --bg:#F6F7F9; --surface:#FFFFFF; --surface-2:#EDF0F3; --line:#D8DEE5;
+    --ink:#14181D; --ink-2:#3D4752; --muted:#68737F;
+    --accent:#0E7C86; --accent-soft:#E2F1F2; --accent-line:#9FCBCE;
+    --amber:#8A5210; --amber-soft:#F6ECDD; --amber-line:#D9BE93;
+    --alarm:#9B2C24; --alarm-soft:#F7E9E7; --alarm-line:#DCB0AB;
+    --shadow:0 1px 2px rgba(20,24,29,.05),0 8px 24px -12px rgba(20,24,29,.16);
+    --sans:"Inter","Helvetica Neue",Helvetica,Arial,system-ui,sans-serif;
+    --serif:Charter,"Bitstream Charter","Iowan Old Style",Georgia,"Times New Roman",serif;
+    --mono:ui-monospace,"SF Mono",SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
+  }
+  @media (prefers-color-scheme:dark){
+    :root:not([data-theme="light"]){
+      --bg:#0E1216; --surface:#161C22; --surface-2:#1D242B; --line:#2C353E;
+      --ink:#E6EBF0; --ink-2:#B4BFCA; --muted:#7C8896;
+      --accent:#3FB6C4; --accent-soft:#122C30; --accent-line:#2A5F66;
+      --amber:#E0A34C; --amber-soft:#2A2117; --amber-line:#5E4826;
+      --alarm:#E58E84; --alarm-soft:#2B1A18; --alarm-line:#5D3630;
+      --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 28px -14px rgba(0,0,0,.7);
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#0E1216; --surface:#161C22; --surface-2:#1D242B; --line:#2C353E;
+    --ink:#E6EBF0; --ink-2:#B4BFCA; --muted:#7C8896;
+    --accent:#3FB6C4; --accent-soft:#122C30; --accent-line:#2A5F66;
+    --amber:#E0A34C; --amber-soft:#2A2117; --amber-line:#5E4826;
+    --alarm:#E58E84; --alarm-soft:#2B1A18; --alarm-line:#5D3630;
+    --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 28px -14px rgba(0,0,0,.7);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--serif);
+       font-size:17px;line-height:1.62;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1010px;margin:0 auto;padding:0 28px 96px}
+  .measure{max-width:68ch}
+  h1,h2,h3,.eyebrow{font-family:var(--sans)}
+  h1{font-size:clamp(30px,4.4vw,44px);line-height:1.08;letter-spacing:-.024em;
+     font-weight:640;margin:0 0 14px;text-wrap:balance}
+  h2{font-size:22px;letter-spacing:-.014em;font-weight:620;margin:0 0 8px;text-wrap:balance}
+  h3{font-size:15.5px;letter-spacing:-.006em;font-weight:620;margin:0 0 6px}
+  p{margin:0 0 15px;color:var(--ink-2)}
+  code,.mono{font-family:var(--mono);font-size:.87em;font-variant-ligatures:none}
+  p code,li code,td code{background:var(--surface-2);border:1px solid var(--line);
+       border-radius:4px;padding:.08em .34em;color:var(--ink)}
+  .eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.13em;
+       text-transform:uppercase;color:var(--accent);font-weight:600}
+  header{padding:64px 0 28px;border-bottom:1px solid var(--line);margin-bottom:40px}
+  header p.sub{font-size:19px;color:var(--muted);margin:0;max-width:60ch}
+  section{margin-bottom:52px}
+
+  figure{margin:28px 0 34px;padding:0}
+  figure svg{max-width:100%;height:auto;display:block;margin:0 auto}
+  figcaption{font-family:var(--sans);font-size:13.5px;color:var(--muted);
+       margin-top:14px;max-width:74ch;line-height:1.55}
+  .fig-frame{background:var(--surface);border:1px solid var(--line);
+       border-radius:10px;padding:22px 20px;box-shadow:var(--shadow);overflow-x:auto}
+
+  /* svg element styling — lives here, never inside the <svg> */
+  .d text{fill:var(--ink);font-family:var(--sans);font-size:12.5px}
+  .d .ttl{font-size:13.5px;font-weight:650;fill:var(--ink)}
+  .d .mn{font-family:var(--mono);font-size:11.5px}
+  .d .sm{font-size:11px;fill:var(--muted)}
+  .d .box{fill:var(--surface-2);stroke:var(--ink);stroke-width:1.5}
+  .d .ext{fill:var(--surface);stroke:var(--ink);stroke-width:1.75}
+  .d .ext-a{fill:var(--accent-soft);stroke:var(--accent);stroke-width:1.75}
+  .d .w{stroke:var(--ink);stroke-width:1.6;fill:none;stroke-linecap:round}
+  .d .bnd{fill:none;stroke:var(--accent);stroke-width:1.6;stroke-dasharray:7 5}
+  .d .bnd-l{fill:var(--accent);font-family:var(--mono);font-size:11px;letter-spacing:.05em}
+  .d .lblbg{fill:var(--surface);stroke:none}
+  .d .port{fill:var(--accent);stroke:var(--bg);stroke-width:1.5}
+  .d .node{fill:var(--ink)}
+  .d .sense{stroke:var(--amber);stroke-width:1.6;fill:none;stroke-dasharray:6 4}
+  .d .sense-l{fill:var(--amber);font-family:var(--mono);font-size:11px}
+  .d .bad{stroke:var(--alarm);stroke-width:1.8;fill:none}
+  .d .bad-l{fill:var(--alarm);font-family:var(--mono);font-size:11px}
+  .d .ok-l{fill:var(--accent);font-family:var(--mono);font-size:11px}
+
+  .cols{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin:24px 0}
+  @media(max-width:760px){.cols{grid-template-columns:1fr}}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:8px;
+        padding:18px 20px;box-shadow:var(--shadow)}
+  .card.a{border-color:var(--accent-line);background:var(--accent-soft)}
+  .card.b{border-color:var(--amber-line);background:var(--amber-soft)}
+  .card .k{font-family:var(--mono);font-size:11px;letter-spacing:.11em;
+     text-transform:uppercase;font-weight:600;display:block;margin-bottom:8px}
+  .card.a .k{color:var(--accent)} .card.b .k{color:var(--amber)}
+  .card p:last-child,.card ul:last-child{margin-bottom:0}
+  ul.tight{margin:0 0 14px;padding-left:19px;color:var(--ink-2)}
+  ul.tight li{margin-bottom:6px}
+  pre.cmd{font-family:var(--mono);font-size:13px;line-height:1.7;background:var(--surface);
+     border:1px solid var(--line);border-radius:8px;padding:16px 20px;overflow-x:auto;
+     margin:16px 0;color:var(--ink)}
+  pre.cmd .c{color:var(--muted)}
+  .scroll{overflow-x:auto;margin:20px 0;border:1px solid var(--line);
+     border-radius:8px;background:var(--surface)}
+  table{border-collapse:collapse;width:100%;font-family:var(--sans);font-size:14px}
+  th,td{padding:9px 18px;text-align:left;border-bottom:1px solid var(--line);white-space:nowrap}
+  thead th{font-family:var(--mono);font-size:11px;letter-spacing:.07em;text-transform:uppercase;
+     color:var(--muted);font-weight:600;background:var(--surface-2)}
+  tbody tr:last-child td{border-bottom:none}
+  td.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+  .verdict{border-left:3px solid var(--accent);background:var(--accent-soft);
+     border-radius:0 8px 8px 0;padding:16px 22px;margin:22px 0}
+  .verdict p:last-child{margin-bottom:0}
+  footer{border-top:1px solid var(--line);padding-top:22px;font-size:14px;color:var(--muted)}
+  footer p{color:var(--muted)}
+</style>
+
+<div class="wrap">
+<header>
+  <div class="eyebrow">1-port vs 2-port</div>
+  <h1>Where to cut the PDN</h1>
+  <p class="sub">The port count is not a modelling convenience — it decides whether the voltage regulator is frozen inside your impedance or simulated as a live block beside it.</p>
+</header>
+
+<section class="measure">
+  <p>Same physical network, two different places to draw the model boundary. Everything the boundary encloses becomes a fixed, linear <span class="mono">Z(s)</span>; everything outside it stays a live model your testbench simulates.</p>
+</section>
+
+<figure>
+ <div class="fig-frame">
+  <svg class="d" viewBox="0 0 960 600" role="img" aria-label="The same PDN ladder drawn twice. In the 1-port case the dashed model boundary encloses the VRM, the bulk, package and die decoupling and both series links, and a single port emerges at the die where the load model connects. In the 2-port case the boundary excludes the VRM, which becomes a separate simulated block connected through port 2, while port 1 still faces the load model.">
+   <defs>
+     <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+       <path d="M0,0 L10,5 L0,10 z" fill="context-stroke"/>
+     </marker>
+   </defs>
+
+   <!-- ================= ROW A : 1-port ================= -->
+   <g>
+     <text class="ttl" x="20" y="26">1-port &mdash; the VRM is frozen inside the model</text>
+     <rect class="bnd" x="44" y="52" width="706" height="214" rx="8"/>
+     <text class="bnd-l" x="56" y="70">MODEL BOUNDARY</text>
+
+     <!-- VRM inside -->
+     <rect class="box" x="68" y="104" width="88" height="56" rx="5"/>
+     <text x="112" y="127" text-anchor="middle">VRM</text>
+     <text class="sm" x="112" y="145" text-anchor="middle">R&#8338; + L&#8338;</text>
+     <line class="w" x1="112" y1="160" x2="112" y2="236"/>
+     <line class="w" x1="156" y1="132" x2="248" y2="132"/>
+
+     <!-- rail + nodes -->
+     <line class="w" x1="248" y1="132" x2="304" y2="132"/>
+     <rect class="box" x="304" y="116" width="84" height="32" rx="4"/>
+     <text class="sm" x="346" y="136" text-anchor="middle">board link</text>
+     <line class="w" x1="388" y1="132" x2="470" y2="132"/>
+     <line class="w" x1="470" y1="132" x2="526" y2="132"/>
+     <rect class="box" x="526" y="116" width="84" height="32" rx="4"/>
+     <text class="sm" x="568" y="136" text-anchor="middle">pkg link</text>
+     <line class="w" x1="610" y1="132" x2="696" y2="132"/>
+     <line class="w" x1="696" y1="132" x2="820" y2="132"/>
+
+     <text class="sm" x="248" y="116" text-anchor="middle">board</text>
+     <text class="sm" x="470" y="116" text-anchor="middle">package</text>
+     <text class="sm" x="696" y="116" text-anchor="middle">die</text>
+
+     <!-- decap branches -->
+     <g>
+       <line class="w" x1="248" y1="132" x2="248" y2="186"/><line class="w" x1="235" y1="186" x2="261" y2="186"/>
+       <line class="w" x1="235" y1="194" x2="261" y2="194"/><line class="w" x1="248" y1="194" x2="248" y2="236"/>
+       <text class="sm" x="266" y="197">bulk</text>
+       <line class="w" x1="470" y1="132" x2="470" y2="186"/><line class="w" x1="457" y1="186" x2="483" y2="186"/>
+       <line class="w" x1="457" y1="194" x2="483" y2="194"/><line class="w" x1="470" y1="194" x2="470" y2="236"/>
+       <text class="sm" x="488" y="197">pkg caps</text>
+       <line class="w" x1="696" y1="132" x2="696" y2="186"/><line class="w" x1="683" y1="186" x2="709" y2="186"/>
+       <line class="w" x1="683" y1="194" x2="709" y2="194"/><line class="w" x1="696" y1="194" x2="696" y2="236"/>
+       <text class="sm" x="714" y="197">on-die</text>
+     </g>
+     <line class="w" x1="112" y1="236" x2="696" y2="236"/>
+     <line class="w" x1="400" y1="236" x2="400" y2="246"/>
+     <line class="w" x1="388" y1="246" x2="412" y2="246"/>
+     <line class="w" x1="393" y1="251" x2="407" y2="251"/>
+     <line class="w" x1="398" y1="256" x2="402" y2="256"/>
+
+     <!-- port 1 -->
+     <circle class="port" cx="750" cy="132" r="5.5"/>
+     <rect class="lblbg" x="724" y="100" width="52" height="17"/><text class="bnd-l" x="750" y="112" text-anchor="middle">port 1</text>
+
+     <!-- load model -->
+     <rect class="ext" x="820" y="104" width="122" height="56" rx="5"/>
+     <text x="881" y="126" text-anchor="middle">load model</text>
+     <text class="sm" x="881" y="145" text-anchor="middle">(RNM)</text>
+     <line class="w" x1="881" y1="160" x2="881" y2="188"/>
+     <line class="w" x1="869" y1="188" x2="893" y2="188"/>
+     <line class="w" x1="874" y1="193" x2="888" y2="193"/>
+     <line class="w" x1="879" y1="198" x2="883" y2="198"/>
+
+     <text class="mn" x="44" y="286">Z_in(s) = Z&#8321;&#8321; &minus; Z&#8321;&#8322;Z&#8322;&#8321;/(Z&#8322;&#8322; + Z_vrm)</text>
+   </g>
+
+   <!-- ================= ROW B : 2-port ================= -->
+   <g transform="translate(0,300)">
+     <text class="ttl" x="20" y="26">2-port &mdash; the VRM is a separate model in the loop</text>
+     <rect class="bnd" x="186" y="52" width="564" height="214" rx="8"/>
+     <text class="bnd-l" x="198" y="70">MODEL BOUNDARY</text>
+
+     <!-- VRM outside -->
+     <rect class="ext-a" x="20" y="104" width="122" height="56" rx="5"/>
+     <text x="81" y="126" text-anchor="middle">VRM model</text>
+     <text class="sm" x="81" y="145" text-anchor="middle">(RNM)</text>
+     <line class="w" x1="81" y1="160" x2="81" y2="188"/>
+     <line class="w" x1="69" y1="188" x2="93" y2="188"/>
+     <line class="w" x1="74" y1="193" x2="88" y2="193"/>
+     <line class="w" x1="79" y1="198" x2="83" y2="198"/>
+     <line class="w" x1="142" y1="132" x2="248" y2="132"/>
+
+     <line class="w" x1="248" y1="132" x2="304" y2="132"/>
+     <rect class="box" x="304" y="116" width="84" height="32" rx="4"/>
+     <text class="sm" x="346" y="136" text-anchor="middle">board link</text>
+     <line class="w" x1="388" y1="132" x2="470" y2="132"/>
+     <line class="w" x1="470" y1="132" x2="526" y2="132"/>
+     <rect class="box" x="526" y="116" width="84" height="32" rx="4"/>
+     <text class="sm" x="568" y="136" text-anchor="middle">pkg link</text>
+     <line class="w" x1="610" y1="132" x2="696" y2="132"/>
+     <line class="w" x1="696" y1="132" x2="820" y2="132"/>
+
+     <text class="sm" x="248" y="116" text-anchor="middle">board</text>
+     <text class="sm" x="470" y="116" text-anchor="middle">package</text>
+     <text class="sm" x="696" y="116" text-anchor="middle">die</text>
+
+     <g>
+       <line class="w" x1="248" y1="132" x2="248" y2="186"/><line class="w" x1="235" y1="186" x2="261" y2="186"/>
+       <line class="w" x1="235" y1="194" x2="261" y2="194"/><line class="w" x1="248" y1="194" x2="248" y2="236"/>
+       <text class="sm" x="266" y="197">bulk</text>
+       <line class="w" x1="470" y1="132" x2="470" y2="186"/><line class="w" x1="457" y1="186" x2="483" y2="186"/>
+       <line class="w" x1="457" y1="194" x2="483" y2="194"/><line class="w" x1="470" y1="194" x2="470" y2="236"/>
+       <text class="sm" x="488" y="197">pkg caps</text>
+       <line class="w" x1="696" y1="132" x2="696" y2="186"/><line class="w" x1="683" y1="186" x2="709" y2="186"/>
+       <line class="w" x1="683" y1="194" x2="709" y2="194"/><line class="w" x1="696" y1="194" x2="696" y2="236"/>
+       <text class="sm" x="714" y="197">on-die</text>
+     </g>
+     <line class="w" x1="230" y1="236" x2="700" y2="236"/>
+     <line class="w" x1="400" y1="236" x2="400" y2="246"/>
+     <line class="w" x1="388" y1="246" x2="412" y2="246"/>
+     <line class="w" x1="393" y1="251" x2="407" y2="251"/>
+     <line class="w" x1="398" y1="256" x2="402" y2="256"/>
+
+     <circle class="port" cx="186" cy="132" r="5.5"/>
+     <rect class="lblbg" x="160" y="100" width="52" height="17"/><text class="bnd-l" x="186" y="112" text-anchor="middle">port 2</text>
+     <circle class="port" cx="750" cy="132" r="5.5"/>
+     <rect class="lblbg" x="724" y="100" width="52" height="17"/><text class="bnd-l" x="750" y="112" text-anchor="middle">port 1</text>
+
+     <rect class="ext" x="820" y="104" width="122" height="56" rx="5"/>
+     <text x="881" y="126" text-anchor="middle">load model</text>
+     <text class="sm" x="881" y="145" text-anchor="middle">(RNM)</text>
+     <line class="w" x1="881" y1="160" x2="881" y2="188"/>
+     <line class="w" x1="869" y1="188" x2="893" y2="188"/>
+     <line class="w" x1="874" y1="193" x2="888" y2="193"/>
+     <line class="w" x1="879" y1="198" x2="883" y2="198"/>
+
+     <text class="mn" x="186" y="286">passive network only &mdash; [Z&#8321;&#8321; Z&#8321;&#8322; ; Z&#8322;&#8321; Z&#8322;&#8322;]</text>
+   </g>
+  </svg>
+ </div>
+ <figcaption><strong>Figure 1.</strong> One network, two boundaries. The 1-port cut swallows the VRM, so its output impedance is baked into a single <span class="mono">Z_in(s)</span> that can never respond to anything. The 2-port cut stops short of it, leaving the VRM as a live block wired in through port&nbsp;2. All ports are referenced to the common ground rail.</figcaption>
+</figure>
+
+<section class="measure">
+  <div class="eyebrow">The testbench</div>
+  <h2>What actually gets wired</h2>
+  <p>The schematic above is the physics. Here is what the two cases look like as blocks in your simulation, with the signal names the generator emits.</p>
+</section>
+
+<figure>
+ <div class="fig-frame">
+  <svg class="d" viewBox="0 0 960 452" role="img" aria-label="Two testbench wirings. The 1-port case is a single loop: the load model sends current into the PDN block and reads a rail voltage back. The 2-port case has the load model on one side and the VRM model on the other, each exchanging a current and a voltage with the PDN block, plus a dashed remote-sense path carrying the die voltage back to the VRM's control input.">
+   <defs>
+     <marker id="ar2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7.5" markerHeight="7.5" orient="auto-start-reverse">
+       <path d="M0,0 L10,5 L0,10 z" fill="context-stroke"/>
+     </marker>
+   </defs>
+
+   <!-- ROW A -->
+   <g>
+     <text class="ttl" x="20" y="26">1-port &mdash; one block, no loop to close</text>
+     <rect class="ext" x="80" y="62" width="170" height="80" rx="6"/>
+     <text x="165" y="92" text-anchor="middle">load model</text>
+     <text class="sm" x="165" y="113" text-anchor="middle">digital activity</text>
+
+     <rect class="ext-a" x="410" y="50" width="240" height="104" rx="6"/>
+     <text class="mn" x="530" y="78" text-anchor="middle">pdn_ss_rail</text>
+     <text class="sm" x="530" y="100" text-anchor="middle">1 port &middot; 6 states</text>
+     <text class="sm" x="530" y="121" text-anchor="middle">VRM frozen inside Z_in</text>
+     <text class="sm" x="530" y="141" text-anchor="middle">25 mults / timestep</text>
+
+     <line class="w" x1="250" y1="84" x2="404" y2="84" marker-end="url(#ar2)"/>
+     <text class="mn" x="327" y="76" text-anchor="middle">i_load0</text>
+     <line class="w" x1="410" y1="122" x2="256" y2="122" marker-end="url(#ar2)"/>
+     <text class="mn" x="333" y="140" text-anchor="middle">v_rail0</text>
+
+     <text class="sm" x="690" y="90">current drawn, positive</text>
+     <text class="sm" x="690" y="112">v = VNOM &minus; Z&#183;i</text>
+   </g>
+
+   <!-- ROW B -->
+   <g transform="translate(0,230)">
+     <text class="ttl" x="20" y="26">2-port &mdash; VRM closes a loop through Z&#8321;&#8322;</text>
+     <rect class="ext" x="30" y="62" width="160" height="80" rx="6"/>
+     <text x="110" y="92" text-anchor="middle">load model</text>
+     <text class="sm" x="110" y="113" text-anchor="middle">digital activity</text>
+
+     <rect class="ext-a" x="345" y="46" width="255" height="116" rx="6"/>
+     <text class="mn" x="472" y="74" text-anchor="middle">pdn_ss</text>
+     <text class="sm" x="472" y="95" text-anchor="middle">2 ports &middot; 6 states</text>
+     <text class="mn" x="472" y="119" text-anchor="middle">[ Z&#8321;&#8321;  Z&#8321;&#8322; ]</text>
+     <text class="mn" x="472" y="139" text-anchor="middle">[ Z&#8322;&#8321;  Z&#8322;&#8322; ]</text>
+
+     <rect class="ext-a" x="760" y="62" width="170" height="80" rx="6"/>
+     <text x="845" y="88" text-anchor="middle">VRM model</text>
+     <text class="sm" x="845" y="108" text-anchor="middle">control loop,</text>
+     <text class="sm" x="845" y="126" text-anchor="middle">output inductor</text>
+
+     <line class="w" x1="190" y1="80" x2="339" y2="80" marker-end="url(#ar2)"/>
+     <text class="mn" x="264" y="72" text-anchor="middle">i_p0 = &minus;i_die</text>
+     <line class="w" x1="345" y1="128" x2="196" y2="128" marker-end="url(#ar2)"/>
+     <text class="mn" x="270" y="146" text-anchor="middle">v_p0</text>
+
+     <line class="w" x1="760" y1="80" x2="606" y2="80" marker-end="url(#ar2)"/>
+     <text class="mn" x="683" y="72" text-anchor="middle">i_p1 = +i_vrm</text>
+     <line class="w" x1="600" y1="128" x2="754" y2="128" marker-end="url(#ar2)"/>
+     <text class="mn" x="677" y="146" text-anchor="middle">v_p1</text>
+
+     <!-- remote sense -->
+     <polyline class="sense" points="240,128 240,196 845,196 845,148" marker-end="url(#ar2)"/>
+     <text class="sense-l" x="542" y="188" text-anchor="middle">remote sense &mdash; regulate on v_p0, not v_p1</text>
+   </g>
+  </svg>
+ </div>
+ <figcaption><strong>Figure 2.</strong> Use the <span class="mono">_rail</span> wrapper for the 1-port case, where "current drawn" is the natural sense. For the 2-port case use the core <span class="mono">pdn_ss</span> module instead: the die <em>draws</em> and the VRM <em>delivers</em>, so the two ports have opposite natural signs and the injection convention (<span class="mono">u</span> = current into the port) keeps them straight. The dashed path is remote sense — a real design choice that routes the regulator's feedback through <span class="mono">Z&#8321;&#8322;</span>.</figcaption>
+</figure>
+
+<section class="measure">
+  <div class="eyebrow">The surprise</div>
+  <h2>A linear VRM collapses back to 1-port &mdash; exactly</h2>
+  <p>Wire up figure 2's bottom row with a VRM that is just a source behind a fixed output impedance, and solve the two equations. The port-2 current drops out and you are left with</p>
+  <pre class="cmd">v&#8320; = i&#8320;&#183;( Z&#8321;&#8321; &minus; Z&#8321;&#8322;Z&#8322;&#8321;/(Z&#8322;&#8322; + Z_vrm) )  +  V_src&#183;Z&#8321;&#8322;/(Z&#8322;&#8322; + Z_vrm)</pre>
+  <p>— the first bracket being precisely the terminated 1-port impedance. This is not an approximation. Building both models through the full pipeline and comparing them:</p>
+  <div class="scroll">
+    <table>
+      <thead><tr><th></th><th>closed-loop 2-port</th><th>terminated 1-port</th></tr></thead>
+      <tbody>
+        <tr><td>max relative difference, 1 kHz&ndash;5 GHz</td><td class="num" colspan="2">2.6e&minus;06</td></tr>
+        <tr><td>peak droop, 1 A load step</td><td class="num">391.3547 mV</td><td class="num">391.3546 mV</td></tr>
+        <tr><td>max waveform difference</td><td class="num" colspan="2">2.9e&minus;05 mV</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="verdict">
+    <p><strong>So "my testbench has a VRM" is not by itself a reason to go 2-port.</strong> Any VRM you can describe as a linear output impedance — however elaborate — folds into <span class="mono">Z_in</span> with no loss. What forces the 2-port is a VRM with <em>behaviour</em>: state you are simulating that the impedance cannot represent.</p>
+  </div>
+</section>
+
+<section>
+  <div class="cols">
+    <div class="card a">
+      <span class="k">Go 1-port</span>
+      <ul class="tight">
+        <li>One aggregate die load, one rail observed at the same node</li>
+        <li>VRM is a fixed linear output impedance (fold it in via the termination formula)</li>
+        <li>You care about first and second droop, where the VRM is irrelevant anyway</li>
+      </ul>
+    </div>
+    <div class="card b">
+      <span class="k">Go 2-port</span>
+      <ul class="tight">
+        <li>VRM control loop you are verifying — compensation, remote sense, loop bandwidth</li>
+        <li>DVFS setpoint steps, current limiting, phase shedding, mode transitions</li>
+        <li>Two load domains whose droop cross-couples — that coupling <em>is</em> <span class="mono">Z&#8321;&#8322;</span></li>
+        <li>You drive at one node and observe at another</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section class="measure">
+  <div class="eyebrow">The trap</div>
+  <h2>Don't close a loop around a 1-port</h2>
+  <p>The failure mode worth naming: taking <span class="mono">Z&#8321;&#8321;</span> <em>and</em> instantiating a VRM model beside it. The regulator is then present twice — once frozen into the impedance, once live — and the droop it computes is wrong in a way that looks plausible. Below 10 MHz the two terminations differ by 40&ndash;70%, which is exactly the band a VRM loop operates in.</p>
+  <h3 style="margin-top:26px">And mind the algebraic loop</h3>
+  <p>In the 2-port case, <span class="mono">v_p1[n]</span> depends on <span class="mono">i_p1[n]</span> through the feedthrough term <span class="mono">Dd</span>. If your VRM computes its output current from the port voltage in the same timestep, that is a same-cycle loop and the simulator will either complain or silently resolve it wrong.</p>
+  <p>The clean fix is physical rather than numerical: give the VRM model its <strong>output inductor as a state</strong>. An inductor current cannot change instantaneously, so <span class="mono">i_p1[n]</span> comes from the state and depends only on <span class="mono">v_p1[n&minus;1]</span> and earlier. The loop is broken by the same component that breaks it in silicon.</p>
+  <pre class="cmd"><span class="c">// VRM output stage — i_p1 is a state, so no same-cycle dependence on v_p1</span>
+always_ff @(posedge clk) begin
+    i_L   &lt;= i_L + (TS/L_OUT) * (v_sw - v_p1 - R_OUT*i_L);
+    v_p1_d &lt;= v_p1;              <span class="c">// sensed one sample later</span>
+end
+assign i_p1 = i_L;</pre>
+</section>
+
+<footer class="measure">
+  <p>Figures describe the synthetic 2-port PDN used throughout this work — VRM, board bulk, package and on-die decoupling, ports at the die and at the VRM output. The equivalence above was checked by building the closed-loop 2-port with an explicit VRM inductor state and the terminated 1-port through the same fitting pipeline, then comparing both frequency response and step-response waveform.</p>
+</footer>
+</div>
